@@ -11,7 +11,7 @@ section .bss
 	inputShift resd 1
 
 section .text
-        global main
+	global caesar
         extern printf
 	extern scanf, fgets, stdin
 
