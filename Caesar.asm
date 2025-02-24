@@ -1,24 +1,52 @@
 section .note.GNU-stack noalloc noexec nowrite progbits
 
 section .data
-	stringOut db "%100s", 10, 0
+	msgGetInput db "String to shift: ", 0
+	msgGetShift db "Positions to shift by: ", 0
+	stringOut db "%s", 10, 0
+	decimalIn db "%d[^\n]", 0
 
 section .bss
-	input resb 200
-	input shift resd 1
+	input resb 400
+	inputShift resd 1
 
 section .text
         global main
         extern printf
+	extern scanf, fgets, stdin
 
 main:
+	push msgGetInput	; Ask for text to shift
+	call printf
+	add esp, 4		; Clean stack
+
+	push dword [stdin]	; Get the input (400 character maximum)
+	push 400
+	push input
+	call fgets
+	add esp, 12		; Clean stack
+
+	push msgGetShift	; Ask or number to shift by
+	call printf
+	add esp, 4		; Clean stack
+
+	push inputShift		; Get the input
+	push decimalIn
+	call scanf
+	add esp, 8		; Clean stack
+
 ; Call caesar
-	push dword [testShift]	; Positions to shift
-	lea eax, testInput	
+	push dword [inputShift]	; Positions to shift
+	lea eax, input	
 	push eax		; Address of string to shift
 	call caesar
 	add esp, 8		; Clean up stack
 
+	push input
+	push stringOut
+	call printf
+	add esp, 8
+breakHere:
 	ret
 
 caesar:
