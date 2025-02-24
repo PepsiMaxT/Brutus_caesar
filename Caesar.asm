@@ -1,9 +1,11 @@
 section .note.GNU-stack noalloc noexec nowrite progbits
 
 section .data
-	testInput db "!£$%^&*()_+=-{[]}'@#;:,<.>/?aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ", 10, 0
-	testShift db 1
 	stringOut db "%100s", 10, 0
+
+section .bss
+	input resb 200
+	input shift resd 1
 
 section .text
         global main
@@ -11,28 +13,22 @@ section .text
 
 main:
 ; Call caesar
-	push dword [testShift]
-	lea eax, testInput
-	push eax
+	push dword [testShift]	; Positions to shift
+	lea eax, testInput	
+	push eax		; Address of string to shift
 	call caesar
-	add esp, 8
-
-; Testing with output
-	push testInput
-	push stringOut
-	call printf
-	add esp, 8
-; Testing end
+	add esp, 8		; Clean up stack
 
 	ret
 
 caesar:
 	push ebp
 	mov ebp, esp
-	; [ebp + 8]  = address string to use
+	; [ebp + 8]  = address of string to use
 	; [ebp + 12] = shift length
 	mov esi, [ebp + 8]	; Pointer to first index of the string
 	mov cl, byte [ebp + 12]	; Value of the shift number
+
 charLoop:	
 	mov al, byte [esi]	; Get char at index
 	cmp al, 0		; Terminating character
@@ -41,30 +37,35 @@ charLoop:
 ; Checking case
 
 ; Higher
-	cmp al, 'A'
-	jl endOfShift
-	cmp al, 'Z'
-	jg checkLower
+	cmp al, 'A'		; Range check upper case
+	jl endOfShift		; ^^^^^^^^^^^ anything below won't be lowercase either
+	cmp al, 'Z'		; ^^^^^^^^^^^
+	jg checkLower		; ^^^^^^^^^^^
+
 	sub al, 'A'		; Normalise upper case
 	mov dl, 'A'		; Save the case
-	jmp shiftIt
+	jmp shiftIt		; Jump to shift
+
 checkLower:
-	cmp al, 'a'
-	jl endOfShift
-	cmp al, 'z'
-	jg endOfShift
-	sub al, 'a'
-	mov dl, 'a'
+	cmp al, 'a'		; Range check lowercase
+	jl endOfShift		; ^^^^^^^^^^^ anything below won't be either case
+	cmp al, 'z'		; ^^^^^^^^^^^
+	jg endOfShift		; ^^^^^^^^^^^ anything above won't be either case
+
+	sub al, 'a'		; Normalise lower case
+	mov dl, 'a'		; Save the case
+
 shiftIt:	
-	push edx
-	movzx eax, al
-	add al, cl
-	mov edx, 0
-	mov ebx, 26
-	div ebx
-	mov al, dl
-	pop edx
-	add al, dl
+	push edx		; Save edx (used in div operation)
+	
+	movzx eax, al		; Ensure only the character position is stored in eax
+	add al, cl		; Add the shift to it
+	mov edx, 0		; Reset edx in prep for modulo
+	mov ebx, 26		; Load modulo value
+	div ebx			; Divide (remainder stored in edx)
+	mov al, dl		; Get remainder
+	pop edx			; Restore edx (with case {'a', 'A'}
+	add al, dl		; Calculate according to case
 	mov byte [esi], al	; Overwrite original character
 endOfShift:
 	inc esi			; Increase pointer
